@@ -306,6 +306,29 @@ fn active_count_survives_every_status_transition_without_underflow() {
 }
 
 #[test]
+fn registering_100_subscriptions_keeps_listings_and_stats_correct() {
+    let s = Setup::new();
+    for id in 1..=100u64 {
+        s.register(id);
+    }
+    // Cancel every tenth subscription, after it has charged 50.
+    for id in (10..=100u64).step_by(10) {
+        s.client.update_subscription(&id, &50, &STATUS_CANCELLED);
+    }
+
+    let all: std::vec::Vec<u64> = (1..=100).collect();
+    assert_eq!(ids(s.client.get_all_subscriptions()), all);
+
+    let active: std::vec::Vec<u64> = (1..=100u64).filter(|id| id % 10 != 0).collect();
+    assert_eq!(ids(s.client.get_active_subscriptions()), active);
+
+    let stats = s.stats();
+    assert_eq!(stats.total_subscriptions, 100);
+    assert_eq!(stats.active_subscriptions, 90);
+    assert_eq!(stats.total_charged_volume, 10 * 50);
+}
+
+#[test]
 fn unknown_subscriptions_are_not_found() {
     let s = Setup::new();
     expect_err(
