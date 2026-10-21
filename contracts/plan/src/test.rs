@@ -192,6 +192,19 @@ fn create_plan_accepts_a_name_of_exactly_the_maximum_length() {
 }
 
 #[test]
+fn create_plan_counts_the_name_limit_in_bytes() {
+    let s = Setup::new();
+    // "é" is two bytes in UTF-8. Thirty-two of them are exactly 64 bytes.
+    let accepted = "é".repeat(MAX_NAME_LEN as usize / 2);
+    let id = s.create(&s.merchant, &accepted);
+    assert_eq!(s.client.get_plan(&id).name.len(), MAX_NAME_LEN);
+
+    // Thirty-three look short, but they are 66 bytes and must be rejected.
+    let rejected = "é".repeat(MAX_NAME_LEN as usize / 2 + 1);
+    s.expect_create_err(&rejected, AMOUNT, INTERVAL, CAP, Error::InvalidName);
+}
+
+#[test]
 fn create_plan_rejects_a_non_positive_amount() {
     let s = Setup::new();
     for amount in [0, -1] {
