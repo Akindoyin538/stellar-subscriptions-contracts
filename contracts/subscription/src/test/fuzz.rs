@@ -59,7 +59,16 @@ proptest! {
             match action {
                 Action::Advance(ledgers) => s.advance(ledgers),
                 Action::Charge => {
-                    if s.client.try_charge(&s.merchant, &id).is_ok() {
+                    // The read-only check must predict the outcome of a real charge.
+                    let chargeable = s.client.is_chargeable(&id);
+                    let charged = s.client.try_charge(&s.merchant, &id).is_ok();
+                    prop_assert_eq!(
+                        chargeable,
+                        charged,
+                        "is_chargeable disagreed with try_charge at ledger {}",
+                        s.ledger()
+                    );
+                    if charged {
                         prop_assert!(!cancelled, "REVOCATION: charge succeeded after cancel");
                         if let Some(previous) = last_charge {
                             prop_assert!(
