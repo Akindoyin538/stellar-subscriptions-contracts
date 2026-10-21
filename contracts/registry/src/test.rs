@@ -329,6 +329,20 @@ fn registering_100_subscriptions_keeps_listings_and_stats_correct() {
 }
 
 #[test]
+fn an_update_with_the_same_status_and_total_changes_nothing() {
+    let s = Setup::new();
+    s.register(1);
+    s.client.update_subscription(&1, &100, &STATUS_PAUSED);
+
+    let stats_before = s.stats();
+    let record_before = s.client.get_subscription_record(&1);
+    s.client.update_subscription(&1, &100, &STATUS_PAUSED);
+
+    assert_eq!(s.stats(), stats_before);
+    assert_eq!(s.client.get_subscription_record(&1), record_before);
+}
+
+#[test]
 fn unknown_subscriptions_are_not_found() {
     let s = Setup::new();
     expect_err(
