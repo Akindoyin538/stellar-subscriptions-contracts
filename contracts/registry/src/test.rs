@@ -273,6 +273,39 @@ fn unknown_status_codes_are_rejected() {
 }
 
 #[test]
+fn active_count_survives_every_status_transition_without_underflow() {
+    let statuses = [
+        STATUS_ACTIVE,
+        STATUS_PAUSED,
+        STATUS_CANCELLED,
+        STATUS_EXHAUSTED,
+    ];
+    for from in statuses {
+        for to in statuses {
+            let s = Setup::new();
+            s.register(1);
+            if from != STATUS_ACTIVE {
+                s.client.update_subscription(&1, &0, &from);
+            }
+            let before = s.stats().active_subscriptions;
+
+            let result = s.client.try_update_subscription(&1, &0, &to);
+            let after = s.stats().active_subscriptions;
+
+            if from == STATUS_CANCELLED || from == STATUS_EXHAUSTED {
+                // Final statuses never change again, so the count is untouched.
+                expect_err(result, Error::AlreadyFinal);
+                assert_eq!(after, before, "{from} -> {to} moved the active count");
+            } else {
+                assert!(result.is_ok(), "{from} -> {to} was refused");
+                let expected = if to == STATUS_ACTIVE { 1 } else { 0 };
+                assert_eq!(after, expected, "{from} -> {to} left the wrong active count");
+            }
+        }
+    }
+}
+
+#[test]
 fn unknown_subscriptions_are_not_found() {
     let s = Setup::new();
     expect_err(
