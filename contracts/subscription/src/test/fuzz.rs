@@ -86,6 +86,16 @@ proptest! {
 
             let sub = s.sub(id);
             prop_assert!(sub.total_charged <= sub.total_cap, "CAP: total_charged over cap");
+            let remaining = s.client.remaining_cap(&id);
+            if sub.status.is_final() {
+                prop_assert_eq!(remaining, 0, "CAP: final subscription has remaining cap");
+            } else {
+                prop_assert_eq!(
+                    remaining + sub.total_charged,
+                    sub.total_cap,
+                    "CAP: remaining cap plus charged differs from total cap"
+                );
+            }
             prop_assert_eq!(sub.total_charged, charges * AMOUNT);
             prop_assert_eq!(s.balance(&s.merchant), sub.total_charged);
             prop_assert_eq!(s.balance(&s.subscriber), START_BALANCE - sub.total_charged);
