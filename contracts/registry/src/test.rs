@@ -343,6 +343,17 @@ fn an_update_with_the_same_status_and_total_changes_nothing() {
 }
 
 #[test]
+fn get_writers_before_set_writers_is_not_configured() {
+    let s = Setup::unconfigured();
+    expect_err(s.client.try_get_writers(), Error::NotConfigured);
+
+    s.client.set_writers(&s.admin, &s.subs, &s.plans);
+    let writers = s.client.get_writers();
+    assert_eq!(writers.subscription_contract, s.subs);
+    assert_eq!(writers.plan_contract, s.plans);
+}
+
+#[test]
 fn unknown_subscriptions_are_not_found() {
     let s = Setup::new();
     expect_err(
