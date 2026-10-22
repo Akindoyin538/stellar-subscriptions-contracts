@@ -59,7 +59,16 @@ proptest! {
             match action {
                 Action::Advance(ledgers) => s.advance(ledgers),
                 Action::Charge => {
-                    if s.client.try_charge(&s.merchant, &id).is_ok() {
+                    // The read-only check must predict the outcome of a real charge.
+                    let chargeable = s.client.is_chargeable(&id);
+                    let charged = s.client.try_charge(&s.merchant, &id).is_ok();
+                    prop_assert_eq!(
+                        chargeable,
+                        charged,
+                        "is_chargeable disagreed with try_charge at ledger {}",
+                        s.ledger()
+                    );
+                    if charged {
                         prop_assert!(!cancelled, "REVOCATION: charge succeeded after cancel");
                         if let Some(previous) = last_charge {
                             prop_assert!(
@@ -86,6 +95,16 @@ proptest! {
 
             let sub = s.sub(id);
             prop_assert!(sub.total_charged <= sub.total_cap, "CAP: total_charged over cap");
+            let remaining = s.client.remaining_cap(&id);
+            if sub.status.is_final() {
+                prop_assert_eq!(remaining, 0, "CAP: final subscription has remaining cap");
+            } else {
+                prop_assert_eq!(
+                    remaining + sub.total_charged,
+                    sub.total_cap,
+                    "CAP: remaining cap plus charged differs from total cap"
+                );
+            }
             prop_assert_eq!(sub.total_charged, charges * AMOUNT);
             prop_assert_eq!(s.balance(&s.merchant), sub.total_charged);
             prop_assert_eq!(s.balance(&s.subscriber), START_BALANCE - sub.total_charged);

@@ -13,6 +13,7 @@ mod events;
 mod hostile_token;
 mod integration;
 mod mock_registry;
+mod merchant_isolation;
 mod simulation_drift;
 mod validation;
 mod views;

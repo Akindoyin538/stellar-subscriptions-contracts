@@ -90,7 +90,8 @@ impl PlanContract {
     }
 
     /// Publish a plan. Requires the merchant's signature. The plan is active
-    /// immediately.
+    /// immediately. `name` must be 1 to `MAX_NAME_LEN` bytes of UTF-8. The
+    /// limit counts bytes, not characters, so multi-byte text uses it faster.
     pub fn create_plan(
         env: Env,
         merchant: Address,
