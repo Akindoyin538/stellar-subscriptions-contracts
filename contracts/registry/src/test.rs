@@ -299,7 +299,10 @@ fn active_count_survives_every_status_transition_without_underflow() {
             } else {
                 assert!(result.is_ok(), "{from} -> {to} was refused");
                 let expected = if to == STATUS_ACTIVE { 1 } else { 0 };
-                assert_eq!(after, expected, "{from} -> {to} left the wrong active count");
+                assert_eq!(
+                    after, expected,
+                    "{from} -> {to} left the wrong active count"
+                );
             }
         }
     }
